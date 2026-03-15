@@ -1,9 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UsersService } from '../services/users.service';
-import { CurrentUser, ApiPaginatedResponse } from '@common/decorators';
-import { JwtPayload } from '@modules/iam/interfaces/jwt-payload.interface';
-import { SearchUsersDto, UpdateProfileDto, UserProfileDto } from '../dto/users.dto';
+import {
+  SearchUsersDto,
+  UpdateProfileDto,
+  UserProfileDto,
+} from '../dto/users.dto';
+import { ApiPaginatedResponse, CurrentUser } from '@src/common/decorators';
+import { JwtPayload } from '@src/modules/iam/interfaces/jwt-payload.interface';
 
 @ApiTags('Users')
 @ApiBearerAuth('access-token')

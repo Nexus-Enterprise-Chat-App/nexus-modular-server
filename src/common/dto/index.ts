@@ -39,7 +39,10 @@ export class ApiResponse<T> {
 // ── Pagination DTOs ──────────────────────────────────────────────────────────
 
 export class CursorPaginationDto {
-  @ApiPropertyOptional({ description: 'Cursor for next page (base64url encoded)', example: '' })
+  @ApiPropertyOptional({
+    description: 'Cursor for next page (base64url encoded)',
+    example: '',
+  })
   @IsOptional()
   @IsString()
   cursor?: string;
@@ -70,6 +73,8 @@ export function encodeCursor(data: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(data)).toString('base64url');
 }
 
-export function decodeCursor<T extends Record<string, unknown>>(cursor: string): T {
+export function decodeCursor<T extends Record<string, unknown>>(
+  cursor: string,
+): T {
   return JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as T;
 }

@@ -8,7 +8,7 @@ import { TokenBlacklistService } from './services/token-blacklist.service';
 import { DeviceSessionService } from './services/device-session.service';
 import { JwtStrategy, LocalAuthStrategy } from './strategies';
 import { EmailProcessor } from './processors/email.processor';
-import { AppConfigService } from '@config/app.config';
+import { AppConfigService } from '@src/config/app.config';
 
 @Module({
   imports: [

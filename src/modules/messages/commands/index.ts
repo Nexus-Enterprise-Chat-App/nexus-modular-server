@@ -1,4 +1,4 @@
-import { MessageType } from '../../../../generated/prisma';
+import { MessageType } from "generated/prisma/client/enums";
 
 // ── Send Message ──────────────────────────────────────────────────────────────
 export class SendMessageCommand {

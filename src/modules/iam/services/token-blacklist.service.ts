@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RedisService } from '@common/services/redis.service';
+import { RedisService } from '@src/common/services/redis.service';
 
 const BLACKLIST_PREFIX = 'blacklist:token:';
 

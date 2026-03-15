@@ -1,13 +1,17 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TerminusModule } from '@nestjs/terminus';
-import { AppConfigService } from '@config/app.config';
 import { PrismaService } from './services/prisma.service';
-import { RedisService, REDIS_CLIENT, createRedisClient } from './services/redis.service';
+import {
+  RedisService,
+  REDIS_CLIENT,
+  createRedisClient,
+} from './services/redis.service';
 import { HealthController } from './health/health.controller';
 import { RedisHealthIndicator } from './health/redis.health';
-import { validateConfig } from '@config/config.schema';
 import { PresenceService } from './services/presence.service';
+import { AppConfigService } from '@src/config/app.config';
+import { validateConfig } from '@src/config/config.schema';
 
 @Global()
 @Module({
@@ -30,8 +34,14 @@ import { PresenceService } from './services/presence.service';
     },
     RedisService,
     RedisHealthIndicator,
-    PresenceService
+    PresenceService,
   ],
-  exports: [AppConfigService, PrismaService, RedisService, PresenceService, REDIS_CLIENT],
+  exports: [
+    AppConfigService,
+    PrismaService,
+    RedisService,
+    PresenceService,
+    REDIS_CLIENT,
+  ],
 })
 export class CommonModule {}

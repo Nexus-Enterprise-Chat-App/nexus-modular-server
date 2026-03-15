@@ -10,7 +10,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { DevicePlatform } from '../../../../generated/prisma';
+import { DevicePlatform } from 'generated/prisma/client/enums';
 
 // ── Registration ─────────────────────────────────────────────────────────────
 
@@ -32,7 +32,8 @@ export class RegisterDto {
   })
   @IsString()
   @Matches(/^[a-zA-Z0-9_]{3,30}$/, {
-    message: 'Handle must be 3-30 characters and contain only letters, numbers, and underscores',
+    message:
+      'Handle must be 3-30 characters and contain only letters, numbers, and underscores',
   })
   handle!: string;
 
@@ -43,7 +44,8 @@ export class RegisterDto {
   @IsString()
   @MinLength(8)
   @Matches(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])/, {
-    message: 'Password must contain at least 1 uppercase letter, 1 number, and 1 special character',
+    message:
+      'Password must contain at least 1 uppercase letter, 1 number, and 1 special character',
   })
   password!: string;
 }
@@ -117,7 +119,8 @@ export class ResetPasswordDto {
   @IsString()
   @MinLength(8)
   @Matches(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])/, {
-    message: 'Password must contain at least 1 uppercase letter, 1 number, and 1 special character',
+    message:
+      'Password must contain at least 1 uppercase letter, 1 number, and 1 special character',
   })
   newPassword!: string;
 }

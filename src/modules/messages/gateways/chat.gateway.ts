@@ -7,7 +7,6 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -16,14 +15,7 @@ import {
 import { UseGuards, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
 import { MessagesService } from '../services/messages.service';
-import { PresenceService } from '@common/services/presence.service';
-import { WsJwtGuard } from '@common/guards';
-import { WsCurrentUser } from '@common/decorators';
-import { JwtPayload } from '@modules/iam/interfaces/jwt-payload.interface';
-import { AppConfigService } from '@config/app.config';
-import { RedisService } from '@common/services/redis.service';
 import {
   MessageCreatedEvent,
   MessageDeletedEvent,
@@ -40,7 +32,13 @@ import {
   AddReactionCommand,
   RemoveReactionCommand,
 } from '../commands';
-import { MessageType } from '../../../../generated/prisma';
+import { MessageType } from 'generated/prisma/client/enums';
+import { JwtPayload } from '@src/modules/iam/interfaces/jwt-payload.interface';
+import { PresenceService } from '@src/common/services/presence.service';
+import { RedisService } from '@src/common/services/redis.service';
+import { AppConfigService } from '@src/config/app.config';
+import { WsJwtGuard } from '@src/common/guards';
+import { WsCurrentUser } from '@src/common/decorators';
 
 // ── WS Event payload types ────────────────────────────────────────────────────
 
@@ -91,7 +89,7 @@ interface WsStatusPayload {
   cors: { origin: '*', credentials: true }, // overridden by AppConfigService in onModuleInit
   transports: ['websocket', 'polling'],
 })
-export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -105,13 +103,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   ) {}
 
   // ── Init — wire Redis adapter ─────────────────────────────────────────────
-  afterInit(server: Server) {
-    const client = this.redis.getClient();
-    // Redis adapter needs a pub and a sub client
-    const subClient = client.duplicate();
-    server.adapter(createAdapter(client, subClient));
-    this.logger.log('Socket.io Redis adapter wired');
-  }
+  // async afterInit(server: Server) {
+  //   const client = this.redis.getClient();
+  //   const subClient = client.duplicate();
+
+  //   await new Promise<void>((resolve) => {
+  //     subClient.once('connect', resolve);
+  //   });
+
+  //   const adapter = createAdapter(client, subClient);
+  //   server.adapter(adapter);
+  //   this.logger.log('Socket.io Redis adapter wired');
+  // }
 
   // ── Connection ────────────────────────────────────────────────────────────
   async handleConnection(client: Socket) {
@@ -122,7 +125,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       client.handshake.headers?.authorization?.replace('Bearer ', '');
 
     if (!token) {
-      this.logger.warn(`Client ${client.id} connected without token — disconnecting`);
+      this.logger.warn(
+        `Client ${client.id} connected without token — disconnecting`,
+      );
       client.emit('error', { code: 'UNAUTHORIZED', message: 'Token required' });
       client.disconnect();
       return;
@@ -140,7 +145,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     // Leave all rooms this socket was in and update presence
     const rooms = Array.from(client.rooms).filter((r) => r !== client.id);
-    await Promise.all(rooms.map((roomId) => this.presence.leaveRoom(roomId, user.sub)));
+    await Promise.all(
+      rooms.map((roomId) => this.presence.leaveRoom(roomId, user.sub)),
+    );
 
     // Broadcast offline status to relevant rooms
     for (const roomId of rooms) {
@@ -255,7 +262,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       await this.messagesService.delete(
         new DeleteMessageCommand(payload.messageId, user.sub, user.role),
       );
-      return { event: 'message:delete:ack', data: { messageId: payload.messageId } };
+      return {
+        event: 'message:delete:ack',
+        data: { messageId: payload.messageId },
+      };
     } catch (err: any) {
       throw new WsException(err.message);
     }
@@ -264,7 +274,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   // ── Reactions ─────────────────────────────────────────────────────────────
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('message:react')
-  async handleReact(@WsCurrentUser() user: JwtPayload, @MessageBody() payload: WsReactionPayload) {
+  async handleReact(
+    @WsCurrentUser() user: JwtPayload,
+    @MessageBody() payload: WsReactionPayload,
+  ) {
     try {
       await this.messagesService.addReaction(
         new AddReactionCommand(payload.messageId, user.sub, payload.emoji),
@@ -386,7 +399,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       }
 
       // Send in batches of 50
-      client.emit('sync:batch', { messages: result.items, hasMore: result.hasMore });
+      client.emit('sync:batch', {
+        messages: result.items,
+        hasMore: result.hasMore,
+      });
       client.emit('sync:complete', {
         roomId: payload.roomId,
         dmConversationId: payload.dmConversationId,
@@ -420,7 +436,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   handleMessageDeleted(event: MessageDeletedEvent) {
     const room = event.roomId ?? event.dmConversationId;
     if (room) {
-      this.server.to(room).emit('message:deleted', { messageId: event.messageId });
+      this.server
+        .to(room)
+        .emit('message:deleted', { messageId: event.messageId });
     }
   }
 

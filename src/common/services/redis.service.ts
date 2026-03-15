@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
+import { AppConfigService } from '@src/config/app.config';
 import Redis from 'ioredis';
-import { AppConfigService } from '@config/app.config';
 
 export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 
@@ -19,7 +19,9 @@ export function createRedisClient(config: AppConfigService): Redis {
   });
 
   client.on('connect', () => new Logger('Redis').log('Connected'));
-  client.on('error', (err) => new Logger('Redis').error(`Connection error: ${err.message}`));
+  client.on('error', (err) =>
+    new Logger('Redis').error(`Connection error: ${err.message}`),
+  );
   client.on('reconnecting', () => new Logger('Redis').warn('Reconnecting...'));
 
   return client;

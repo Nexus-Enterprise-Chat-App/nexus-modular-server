@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Body,
   Controller,
@@ -18,8 +19,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { RoomsService } from '../services/rooms.service';
-import { CurrentUser, Roles, ApiPaginatedResponse } from '@common/decorators';
-import { JwtPayload } from '@modules/iam/interfaces/jwt-payload.interface';
 import {
   AssignModeratorDto,
   ListMembersDto,
@@ -28,7 +27,13 @@ import {
   RoomMemberDto,
   SlowModeDto,
 } from '../dto/rooms.dto';
-import { UserRole } from '../../../../generated/prisma';
+import {
+  ApiPaginatedResponse,
+  CurrentUser,
+  Roles,
+} from '@src/common/decorators';
+import { UserRole } from 'generated/prisma/client/enums';
+import { JwtPayload } from '@src/modules/iam/interfaces/jwt-payload.interface';
 
 @ApiTags('Rooms')
 @ApiBearerAuth('access-token')
@@ -38,7 +43,9 @@ export class RoomsController {
 
   // GET /v1/rooms
   @Get()
-  @ApiOperation({ summary: 'List all active rooms with optional search and filter' })
+  @ApiOperation({
+    summary: 'List all active rooms with optional search and filter',
+  })
   @ApiPaginatedResponse(RoomDto)
   async listRooms(@Query() dto: ListRoomsDto) {
     return this.roomsService.listRooms(dto);
@@ -56,14 +63,19 @@ export class RoomsController {
   @Get(':roomId/members')
   @ApiOperation({ summary: 'List room members with online status' })
   @ApiPaginatedResponse(RoomMemberDto)
-  async listMembers(@Param('roomId') roomId: string, @Query() dto: ListMembersDto) {
+  async listMembers(
+    @Param('roomId') roomId: string,
+    @Query() dto: ListMembersDto,
+  ) {
     return this.roomsService.listMembers(roomId, dto);
   }
 
   // PATCH /v1/rooms/:roomId/slow-mode
   @Patch(':roomId/slow-mode')
   @Roles(UserRole.MODERATOR, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Set or disable slow mode for a room (Moderator/Admin)' })
+  @ApiOperation({
+    summary: 'Set or disable slow mode for a room (Moderator/Admin)',
+  })
   async setSlowMode(
     @Param('roomId') roomId: string,
     @Body() dto: SlowModeDto,

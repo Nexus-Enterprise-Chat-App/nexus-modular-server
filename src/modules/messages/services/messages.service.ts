@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   BadRequestException,
   ForbiddenException,
@@ -9,9 +8,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { MessagesRepository, FullMessage } from '../repositories/messages.repository';
-import { RoomsRepository } from '@modules/rooms/repositories/rooms.repository';
-import { RedisService } from '@common/services/redis.service';
+import {
+  MessagesRepository,
+  FullMessage,
+} from '../repositories/messages.repository';
 import {
   SendMessageCommand,
   EditMessageCommand,
@@ -21,7 +21,11 @@ import {
   PinMessageCommand,
   UnpinMessageCommand,
 } from '../commands';
-import { GetRoomMessagesQuery, GetDmMessagesQuery, GetPinnedMessagesQuery } from '../queries';
+import {
+  GetRoomMessagesQuery,
+  GetDmMessagesQuery,
+  GetPinnedMessagesQuery,
+} from '../queries';
 import {
   MessageCreatedEvent,
   MessageDeletedEvent,
@@ -32,10 +36,13 @@ import {
   ReactionRemovedEvent,
 } from '../events';
 import { MessageDto, ReactionSummaryDto } from '../dto/messages.dto';
-import { CursorPaginationResult } from '@common/dto';
-import { MessageStatus, UserRole } from '../../../../generated/prisma';
+import { RoomsRepository } from '@src/modules/rooms/repositories/rooms.repository';
+import { RedisService } from '@src/common/services/redis.service';
+import { MessageStatus, UserRole } from 'generated/prisma/client/enums';
+import { CursorPaginationResult } from '@src/common/dto';
 
-const SLOW_MODE_KEY = (roomId: string, userId: string) => `slowmode:room:${roomId}:user:${userId}`;
+const SLOW_MODE_KEY = (roomId: string, userId: string) =>
+  `slowmode:room:${roomId}:user:${userId}`;
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -52,7 +59,9 @@ export class MessagesService {
   async send(cmd: SendMessageCommand): Promise<MessageDto> {
     // Deduplication — idempotent if client retries
     if (cmd.clientTempId) {
-      const existing = await this.messagesRepo.findByClientTempId(cmd.clientTempId);
+      const existing = await this.messagesRepo.findByClientTempId(
+        cmd.clientTempId,
+      );
       if (existing) return this.toDto(existing, cmd.senderId);
     }
 
@@ -81,7 +90,11 @@ export class MessagesService {
     if (cmd.roomId) {
       const room = await this.roomsRepo.findBySlugOrId(cmd.roomId);
       if (room?.slowModeSeconds) {
-        await this.redis.set(SLOW_MODE_KEY(cmd.roomId, cmd.senderId), '1', room.slowModeSeconds);
+        await this.redis.set(
+          SLOW_MODE_KEY(cmd.roomId, cmd.senderId),
+          '1',
+          room.slowModeSeconds,
+        );
       }
     }
 
@@ -94,7 +107,8 @@ export class MessagesService {
   async edit(cmd: EditMessageCommand): Promise<MessageDto> {
     const message = await this.messagesRepo.findById(cmd.messageId);
     if (!message) throw new NotFoundException('Message not found');
-    if (message.deletedAt) throw new BadRequestException('Cannot edit a deleted message');
+    if (message.deletedAt)
+      throw new BadRequestException('Cannot edit a deleted message');
     if (message.senderId !== cmd.requesterId) {
       throw new ForbiddenException('You can only edit your own messages');
     }
@@ -117,7 +131,9 @@ export class MessagesService {
     if (message.deletedAt) return; // Already deleted — idempotent
 
     const isOwner = message.senderId === cmd.requesterId;
-    const isMod = cmd.requesterRole === UserRole.MODERATOR || cmd.requesterRole === UserRole.ADMIN;
+    const isMod =
+      cmd.requesterRole === UserRole.MODERATOR ||
+      cmd.requesterRole === UserRole.ADMIN;
 
     if (!isOwner && !isMod) {
       throw new ForbiddenException('You cannot delete this message');
@@ -126,13 +142,23 @@ export class MessagesService {
     await this.messagesRepo.softDelete(cmd.messageId);
     this.events.emit(
       'message.deleted',
-      new MessageDeletedEvent(cmd.messageId, message.roomId, message.dmConversationId),
+      new MessageDeletedEvent(
+        cmd.messageId,
+        message.roomId,
+        message.dmConversationId,
+      ),
     );
   }
 
   // ── Get Room Messages ─────────────────────────────────────────────────────
-  async getRoomMessages(query: GetRoomMessagesQuery): Promise<CursorPaginationResult<MessageDto>> {
-    const result = await this.messagesRepo.listByRoom(query.roomId, query.limit, query.cursor);
+  async getRoomMessages(
+    query: GetRoomMessagesQuery,
+  ): Promise<CursorPaginationResult<MessageDto>> {
+    const result = await this.messagesRepo.listByRoom(
+      query.roomId,
+      query.limit,
+      query.cursor,
+    );
     return {
       ...result,
       items: result.items.map((m) => this.toDto(m, query.requesterId)),
@@ -140,7 +166,9 @@ export class MessagesService {
   }
 
   // ── Get DM Messages ───────────────────────────────────────────────────────
-  async getDmMessages(query: GetDmMessagesQuery): Promise<CursorPaginationResult<MessageDto>> {
+  async getDmMessages(
+    query: GetDmMessagesQuery,
+  ): Promise<CursorPaginationResult<MessageDto>> {
     const result = await this.messagesRepo.listByDm(
       query.dmConversationId,
       query.limit,
@@ -153,7 +181,9 @@ export class MessagesService {
   }
 
   // ── Get Pinned Messages ───────────────────────────────────────────────────
-  async getPinnedMessages(query: GetPinnedMessagesQuery): Promise<MessageDto[]> {
+  async getPinnedMessages(
+    query: GetPinnedMessagesQuery,
+  ): Promise<MessageDto[]> {
     const messages = await this.messagesRepo.getPinnedMessages(query.roomId);
     return messages.map((m) => this.toDto(m, query.requesterId));
   }
@@ -162,7 +192,8 @@ export class MessagesService {
   async addReaction(cmd: AddReactionCommand): Promise<void> {
     const message = await this.messagesRepo.findById(cmd.messageId);
     if (!message) throw new NotFoundException('Message not found');
-    if (message.deletedAt) throw new BadRequestException('Cannot react to a deleted message');
+    if (message.deletedAt)
+      throw new BadRequestException('Cannot react to a deleted message');
 
     await this.messagesRepo.addReaction(cmd.messageId, cmd.userId, cmd.emoji);
     this.events.emit(
@@ -182,7 +213,11 @@ export class MessagesService {
     const message = await this.messagesRepo.findById(cmd.messageId);
     if (!message) throw new NotFoundException('Message not found');
 
-    await this.messagesRepo.removeReaction(cmd.messageId, cmd.userId, cmd.emoji);
+    await this.messagesRepo.removeReaction(
+      cmd.messageId,
+      cmd.userId,
+      cmd.emoji,
+    );
     this.events.emit(
       'message.reaction.removed',
       new ReactionRemovedEvent(
@@ -228,16 +263,27 @@ export class MessagesService {
     }
 
     await this.messagesRepo.unpin(cmd.roomId, cmd.messageId);
-    this.events.emit('message.unpinned', new MessageUnpinnedEvent(cmd.roomId, cmd.messageId));
+    this.events.emit(
+      'message.unpinned',
+      new MessageUnpinnedEvent(cmd.roomId, cmd.messageId),
+    );
   }
 
   // ── Mark Delivered ────────────────────────────────────────────────────────
   async markDelivered(messageId: string, recipientId: string): Promise<void> {
-    await this.messagesRepo.upsertStatus(messageId, recipientId, MessageStatus.DELIVERED);
+    await this.messagesRepo.upsertStatus(
+      messageId,
+      recipientId,
+      MessageStatus.DELIVERED,
+    );
   }
 
   async markRead(messageId: string, recipientId: string): Promise<void> {
-    await this.messagesRepo.upsertStatus(messageId, recipientId, MessageStatus.READ);
+    await this.messagesRepo.upsertStatus(
+      messageId,
+      recipientId,
+      MessageStatus.READ,
+    );
   }
 
   async markRoomDelivered(roomId: string, userId: string): Promise<void> {
@@ -259,20 +305,28 @@ export class MessagesService {
   // ── Private: FullMessage → MessageDto ────────────────────────────────────
   toDto(message: FullMessage, requesterId: string): MessageDto {
     // Aggregate reactions: { emoji → { count, reactedByMe } }
-    const reactionMap = new Map<string, { count: number; reactedByMe: boolean }>();
+    const reactionMap = new Map<
+      string,
+      { count: number; reactedByMe: boolean }
+    >();
     for (const r of message.reactions) {
-      const entry = reactionMap.get(r.emoji) ?? { count: 0, reactedByMe: false };
+      const entry = reactionMap.get(r.emoji) ?? {
+        count: 0,
+        reactedByMe: false,
+      };
       entry.count++;
       if (r.userId === requesterId) entry.reactedByMe = true;
       reactionMap.set(r.emoji, entry);
     }
 
-    const reactions: ReactionSummaryDto[] = Array.from(reactionMap.entries()).map(
-      ([emoji, data]) => ({ emoji, ...data }),
-    );
+    const reactions: ReactionSummaryDto[] = Array.from(
+      reactionMap.entries(),
+    ).map(([emoji, data]) => ({ emoji, ...data }));
 
     // Find this user's delivery/read status for this message
-    const myStatus = message.statuses.find((s) => s.recipientId === requesterId)?.status ?? null;
+    const myStatus =
+      message.statuses.find((s) => s.recipientId === requesterId)?.status ??
+      null;
 
     return {
       id: message.id,

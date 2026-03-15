@@ -7,12 +7,16 @@ import {
 import { MessagesService } from './services/messages.service';
 import { MessagesRepository } from './repositories/messages.repository';
 import { ChatGateway } from './gateways/chat.gateway';
-import { RoomsModule } from '@modules/rooms/rooms.module';
-import { IamModule } from '@modules/iam/iam.module';
+import { RoomsModule } from '../rooms/rooms.module';
+import { IamModule } from '../iam/iam.module';
 
 @Module({
   imports: [RoomsModule, IamModule],
-  controllers: [MessagesController, RoomMessagesController, DmMessagesController],
+  controllers: [
+    MessagesController,
+    RoomMessagesController,
+    DmMessagesController,
+  ],
   providers: [MessagesService, MessagesRepository, ChatGateway],
   exports: [MessagesService],
 })

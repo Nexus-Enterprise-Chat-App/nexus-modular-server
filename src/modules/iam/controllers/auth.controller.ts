@@ -9,10 +9,14 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from '../services/auth.service';
-import { CurrentUser, Public } from 'common/decorators';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import {
   AuthResponseDto,
@@ -23,6 +27,7 @@ import {
   RegisterDto,
   ResetPasswordDto,
 } from '../dto/auth.dto';
+import { CurrentUser, Public } from '@src/common/decorators';
 
 @ApiTags('IAM — Authentication')
 @Controller({ path: 'auth', version: '1' })
@@ -34,9 +39,16 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user account' })
-  @ApiResponse({ status: 201, type: AuthResponseDto, description: 'Account created successfully' })
+  @ApiResponse({
+    status: 201,
+    type: AuthResponseDto,
+    description: 'Account created successfully',
+  })
   @ApiResponse({ status: 409, description: 'Email or handle already in use' })
-  async register(@Body() dto: RegisterDto, @Req() req: Request): Promise<AuthResponseDto> {
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() req: Request,
+  ): Promise<AuthResponseDto> {
     return this.authService.register(dto, req.ip);
   }
 
@@ -45,9 +57,16 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
-  @ApiResponse({ status: 200, type: AuthResponseDto, description: 'Login successful' })
+  @ApiResponse({
+    status: 200,
+    type: AuthResponseDto,
+    description: 'Login successful',
+  })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() dto: LoginDto, @Req() req: Request): Promise<AuthResponseDto> {
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+  ): Promise<AuthResponseDto> {
     return this.authService.login(dto, req.ip);
   }
 
@@ -66,7 +85,9 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Logout — blacklist access token and clear device session' })
+  @ApiOperation({
+    summary: 'Logout — blacklist access token and clear device session',
+  })
   @ApiResponse({ status: 204, description: 'Logged out successfully' })
   async logout(@CurrentUser() user: JwtPayload): Promise<void> {
     await this.authService.logout(
@@ -82,7 +103,10 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Send password reset email' })
-  @ApiResponse({ status: 204, description: 'Reset email sent (if account exists)' })
+  @ApiResponse({
+    status: 204,
+    description: 'Reset email sent (if account exists)',
+  })
   async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<void> {
     await this.authService.forgotPassword(dto.email);
   }
@@ -101,9 +125,13 @@ export class AuthController {
   // GET /v1/auth/sessions
   @Get('sessions')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all active device sessions for the current user' })
+  @ApiOperation({
+    summary: 'List all active device sessions for the current user',
+  })
   @ApiResponse({ status: 200, type: [DeviceSessionDto] })
-  async listSessions(@CurrentUser() user: JwtPayload): Promise<DeviceSessionDto[]> {
+  async listSessions(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<DeviceSessionDto[]> {
     return this.authService.listSessions(user.sub);
   }
 

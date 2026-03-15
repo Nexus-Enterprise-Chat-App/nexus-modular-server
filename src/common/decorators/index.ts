@@ -7,8 +7,8 @@ import {
   applyDecorators,
 } from '@nestjs/common';
 import { ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
-import { JwtPayload } from '@modules/iam/interfaces/jwt-payload.interface';
-import { UserRole } from '../../../generated/prisma';
+import { JwtPayload } from '@src/modules/iam/interfaces/jwt-payload.interface';
+import { UserRole } from 'generated/prisma/client/enums';
 
 // ── @CurrentUser() ───────────────────────────────────────────────────────────
 // Extracts the authenticated user from request.user (set by JwtStrategy)
@@ -36,7 +36,8 @@ export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
 // ── @Permissions(...permissions) ─────────────────────────────────────────────
 // Metadata decorator consumed by PermissionsGuard
 export const PERMISSIONS_KEY = 'permissions';
-export const Permissions = (...permissions: string[]) => SetMetadata(PERMISSIONS_KEY, permissions);
+export const Permissions = (...permissions: string[]) =>
+  SetMetadata(PERMISSIONS_KEY, permissions);
 
 // ── @Public() ────────────────────────────────────────────────────────────────
 // Marks an endpoint as exempt from JwtAuthGuard

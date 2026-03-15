@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@common/services/prisma.service';
+import { PrismaService } from '@src/common/services/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { DevicePlatform } from '../../../../generated/prisma';
+import { DevicePlatform } from 'generated/prisma/client/enums';
 
 interface UpsertSessionParams {
   userId: string;
@@ -22,7 +22,9 @@ export class DeviceSessionService {
     const refreshTokenHash = await bcrypt.hash(params.refreshToken, 10);
 
     return this.prisma.deviceSession.upsert({
-      where: { userId_deviceId: { userId: params.userId, deviceId: params.deviceId } },
+      where: {
+        userId_deviceId: { userId: params.userId, deviceId: params.deviceId },
+      },
       create: {
         userId: params.userId,
         deviceId: params.deviceId,

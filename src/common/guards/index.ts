@@ -12,10 +12,10 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { IS_PUBLIC_KEY, ROLES_KEY, PERMISSIONS_KEY } from '../decorators';
-import { TokenBlacklistService } from '@modules/iam/services/token-blacklist.service';
-import { AppConfigService } from '@config/app.config';
-import { JwtPayload } from '@modules/iam/interfaces/jwt-payload.interface';
-import { UserRole } from '../../../generated/prisma';
+import { JwtPayload } from '@src/modules/iam/interfaces/jwt-payload.interface';
+import { UserRole } from 'generated/prisma/client/enums';
+import { TokenBlacklistService } from '@src/modules/iam/services/token-blacklist.service';
+import { AppConfigService } from '@src/config/app.config';
 
 // ── JwtAuthGuard ─────────────────────────────────────────────────────────────
 @Injectable()
@@ -47,10 +47,10 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(ctx: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
-      ctx.getHandler(),
-      ctx.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
+      ROLES_KEY,
+      [ctx.getHandler(), ctx.getClass()],
+    );
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
     const { user } = ctx.switchToHttp().getRequest<{ user: JwtPayload }>();
@@ -58,7 +58,9 @@ export class RolesGuard implements CanActivate {
 
     const hasRole = requiredRoles.includes(user.role as UserRole);
     if (!hasRole) {
-      throw new ForbiddenException(`Requires one of these roles: ${requiredRoles.join(', ')}`);
+      throw new ForbiddenException(
+        `Requires one of these roles: ${requiredRoles.join(', ')}`,
+      );
     }
     return true;
   }
@@ -70,10 +72,10 @@ export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(ctx: ExecutionContext): boolean {
-    const requiredPerms = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
-      ctx.getHandler(),
-      ctx.getClass(),
-    ]);
+    const requiredPerms = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [ctx.getHandler(), ctx.getClass()],
+    );
     if (!requiredPerms || requiredPerms.length === 0) return true;
 
     const { user } = ctx.switchToHttp().getRequest<{ user: JwtPayload }>();
@@ -103,7 +105,10 @@ export class WsJwtGuard implements CanActivate {
       client.handshake?.headers?.authorization?.replace('Bearer ', '');
 
     if (!token) {
-      client.emit('error', { code: 'UNAUTHORIZED', message: 'No token provided' });
+      client.emit('error', {
+        code: 'UNAUTHORIZED',
+        message: 'No token provided',
+      });
       client.disconnect();
       return false;
     }
@@ -113,9 +118,14 @@ export class WsJwtGuard implements CanActivate {
         secret: this.configService.jwt.accessSecret,
       });
 
-      const isBlacklisted = await this.blacklistService.isBlacklisted(payload.jti);
+      const isBlacklisted = await this.blacklistService.isBlacklisted(
+        payload.jti,
+      );
       if (isBlacklisted) {
-        client.emit('error', { code: 'UNAUTHORIZED', message: 'Token revoked' });
+        client.emit('error', {
+          code: 'UNAUTHORIZED',
+          message: 'Token revoked',
+        });
         client.disconnect();
         return false;
       }

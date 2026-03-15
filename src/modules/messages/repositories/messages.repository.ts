@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { MessageStatus, MessageType, Prisma } from '../../../../generated/prisma';
-import { PrismaService } from 'common/services/prisma.service';
-import { CursorPaginationResult, decodeCursor, encodeCursor } from 'common/dto';
+import {
+  CursorPaginationResult,
+  decodeCursor,
+  encodeCursor,
+} from '@src/common/dto';
+import { PrismaService } from '@src/common/services/prisma.service';
+import {
+  MessageStatus,
+  MessageType,
+  Prisma,
+} from 'generated/prisma/client/client';
 
 // Full message shape including relations needed for MessageDto
 const MESSAGE_INCLUDE = {
@@ -10,14 +18,18 @@ const MESSAGE_INCLUDE = {
     select: {
       id: true,
       content: true,
-      sender: { select: { id: true, handle: true, name: true, avatarUrl: true } },
+      sender: {
+        select: { id: true, handle: true, name: true, avatarUrl: true },
+      },
     },
   },
   reactions: { select: { userId: true, emoji: true } },
   statuses: { select: { recipientId: true, status: true } },
 } satisfies Prisma.MessageInclude;
 
-export type FullMessage = Prisma.MessageGetPayload<{ include: typeof MESSAGE_INCLUDE }>;
+export type FullMessage = Prisma.MessageGetPayload<{
+  include: typeof MESSAGE_INCLUDE;
+}>;
 
 @Injectable()
 export class MessagesRepository {
@@ -72,7 +84,11 @@ export class MessagesRepository {
     limit: number,
     cursor?: string,
   ): Promise<CursorPaginationResult<FullMessage>> {
-    return this.paginateMessages({ dmConversationId, deletedAt: null }, limit, cursor);
+    return this.paginateMessages(
+      { dmConversationId, deletedAt: null },
+      limit,
+      cursor,
+    );
   }
 
   // ── Edit ───────────────────────────────────────────────────────────────────
@@ -103,7 +119,9 @@ export class MessagesRepository {
   }
 
   async removeReaction(messageId: string, userId: string, emoji: string) {
-    return this.prisma.reaction.deleteMany({ where: { messageId, userId, emoji } });
+    return this.prisma.reaction.deleteMany({
+      where: { messageId, userId, emoji },
+    });
   }
 
   async getReactions(messageId: string) {
@@ -111,7 +129,11 @@ export class MessagesRepository {
   }
 
   // ── Message statuses ───────────────────────────────────────────────────────
-  async upsertStatus(messageId: string, recipientId: string, status: MessageStatus) {
+  async upsertStatus(
+    messageId: string,
+    recipientId: string,
+    status: MessageStatus,
+  ) {
     return this.prisma.messageStatus_.upsert({
       where: { messageId_recipientId: { messageId, recipientId } },
       create: { messageId, recipientId, status },
@@ -130,7 +152,11 @@ export class MessagesRepository {
       messages.map((m) =>
         this.prisma.messageStatus_.upsert({
           where: { messageId_recipientId: { messageId: m.id, recipientId } },
-          create: { messageId: m.id, recipientId, status: MessageStatus.DELIVERED },
+          create: {
+            messageId: m.id,
+            recipientId,
+            status: MessageStatus.DELIVERED,
+          },
           update: { status: MessageStatus.DELIVERED },
         }),
       ),
@@ -147,7 +173,9 @@ export class MessagesRepository {
   }
 
   async unpin(roomId: string, messageId: string) {
-    return this.prisma.pinnedMessage.deleteMany({ where: { roomId, messageId } });
+    return this.prisma.pinnedMessage.deleteMany({
+      where: { roomId, messageId },
+    });
   }
 
   async getPinnedMessages(roomId: string): Promise<FullMessage[]> {
@@ -171,7 +199,10 @@ export class MessagesRepository {
 
     const cursorFilter: Prisma.MessageWhereInput | undefined = cursor
       ? (() => {
-          const { id, createdAt } = decodeCursor<{ id: string; createdAt: string }>(cursor);
+          const { id, createdAt } = decodeCursor<{
+            id: string;
+            createdAt: string;
+          }>(cursor);
           return {
             OR: [
               { createdAt: { lt: new Date(createdAt) } },

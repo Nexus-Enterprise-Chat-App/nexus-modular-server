@@ -9,14 +9,17 @@ import { IamModule } from './modules/iam/iam.module';
 import { UsersModule } from './modules/users/users.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { MessagesModule } from './modules/messages/messages.module';
-import { AppConfigService } from '@config/app.config';
-import { GlobalHttpExceptionFilter, PrismaExceptionFilter } from './common/filters';
 import {
   ResponseTransformInterceptor,
   LoggingInterceptor,
   TimeoutInterceptor,
 } from './common/interceptors';
 import { JwtAuthGuard, RolesGuard, PermissionsGuard } from './common/guards';
+import {
+  GlobalHttpExceptionFilter,
+  PrismaExceptionFilter,
+} from './common/filters';
+import { AppConfigService } from './config/app.config';
 
 @Module({
   imports: [
@@ -27,7 +30,10 @@ import { JwtAuthGuard, RolesGuard, PermissionsGuard } from './common/guards';
         pinoHttp: {
           level: config.isDevelopment ? 'debug' : 'info',
           transport: config.isDevelopment
-            ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
+            ? {
+                target: 'pino-pretty',
+                options: { colorize: true, singleLine: true },
+              }
             : undefined,
           redact: ['req.headers.authorization', 'req.body.password'],
           autoLogging: false,
@@ -37,13 +43,19 @@ import { JwtAuthGuard, RolesGuard, PermissionsGuard } from './common/guards';
 
     // ── Core ─────────────────────────────────────────────────────
     CommonModule,
-    EventEmitterModule.forRoot({ wildcard: true, delimiter: '.', global: true }),
+    EventEmitterModule.forRoot({
+      wildcard: true,
+      delimiter: '.',
+      global: true,
+    }),
 
     // ── Rate limiting ────────────────────────────────────────────
     ThrottlerModule.forRootAsync({
       inject: [AppConfigService],
       useFactory: (config: AppConfigService) => ({
-        throttlers: [{ ttl: config.throttle.ttl, limit: config.throttle.limit }],
+        throttlers: [
+          { ttl: config.throttle.ttl, limit: config.throttle.limit },
+        ],
       }),
     }),
 

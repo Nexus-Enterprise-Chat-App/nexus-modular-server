@@ -1,8 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { RoomsRepository, RoomWithModerators } from '../repositories/rooms.repository';
-import { PresenceService } from '@common/services/presence.service';
-import { CursorPaginationResult } from '@common/dto';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  RoomsRepository,
+  RoomWithModerators,
+} from '../repositories/rooms.repository';
 import {
   AssignModeratorDto,
   ListMembersDto,
@@ -11,8 +16,10 @@ import {
   RoomMemberDto,
   SlowModeDto,
 } from '../dto/rooms.dto';
-import { JwtPayload } from '@modules/iam/interfaces/jwt-payload.interface';
-import { UserRole } from '../../../../generated/prisma';
+import { PresenceService } from '@src/common/services/presence.service';
+import { CursorPaginationResult } from '@src/common/dto';
+import { JwtPayload } from '@src/modules/iam/interfaces/jwt-payload.interface';
+import { UserRole } from 'generated/prisma/client/enums';
 
 @Injectable()
 export class RoomsService {
@@ -49,7 +56,11 @@ export class RoomsService {
   ): Promise<CursorPaginationResult<RoomMemberDto>> {
     await this.requireRoomExists(roomId);
 
-    const result = await this.roomsRepo.findMembers(roomId, dto.limit ?? 20, dto.cursor);
+    const result = await this.roomsRepo.findMembers(
+      roomId,
+      dto.limit ?? 20,
+      dto.cursor,
+    );
     const moderatorIds = new Set(
       result.items
         .flatMap((u) => u.roomModerations)
@@ -57,7 +68,9 @@ export class RoomsService {
         .filter(Boolean),
     );
 
-    const onlineStatuses = await this.presence.getOnlineStatuses(result.items.map((u) => u.id));
+    const onlineStatuses = await this.presence.getOnlineStatuses(
+      result.items.map((u) => u.id),
+    );
 
     const members: RoomMemberDto[] = result.items.map((u) => ({
       id: u.id,
@@ -72,24 +85,39 @@ export class RoomsService {
   }
 
   // ── Assign moderator ──────────────────────────────────────────────────────
-  async assignModerator(roomId: string, dto: AssignModeratorDto, actor: JwtPayload): Promise<void> {
+  async assignModerator(
+    roomId: string,
+    dto: AssignModeratorDto,
+    actor: JwtPayload,
+  ): Promise<void> {
     await this.requireRoomExists(roomId);
     this.requireAdminOrMod(actor);
     await this.roomsRepo.assignModerator(roomId, dto.userId, actor.sub);
   }
 
   // ── Remove moderator ──────────────────────────────────────────────────────
-  async removeModerator(roomId: string, userId: string, actor: JwtPayload): Promise<void> {
+  async removeModerator(
+    roomId: string,
+    userId: string,
+    actor: JwtPayload,
+  ): Promise<void> {
     await this.requireRoomExists(roomId);
     this.requireAdminOrMod(actor);
     await this.roomsRepo.removeModerator(roomId, userId);
   }
 
   // ── Slow mode ─────────────────────────────────────────────────────────────
-  async setSlowMode(roomId: string, dto: SlowModeDto, actor: JwtPayload): Promise<RoomDto> {
+  async setSlowMode(
+    roomId: string,
+    dto: SlowModeDto,
+    actor: JwtPayload,
+  ): Promise<RoomDto> {
     await this.requireRoomExists(roomId);
     await this.requireModeratorOrAdmin(roomId, actor);
-    const updated = await this.roomsRepo.setSlowMode(roomId, dto.seconds ?? null);
+    const updated = await this.roomsRepo.setSlowMode(
+      roomId,
+      dto.seconds ?? null,
+    );
     return this.toDto(updated);
   }
 
@@ -134,9 +162,13 @@ export class RoomsService {
     }
   }
 
-  private async requireModeratorOrAdmin(roomId: string, actor: JwtPayload): Promise<void> {
+  private async requireModeratorOrAdmin(
+    roomId: string,
+    actor: JwtPayload,
+  ): Promise<void> {
     if (actor.role === UserRole.ADMIN) return;
     const isMod = await this.roomsRepo.isModerator(roomId, actor.sub);
-    if (!isMod) throw new ForbiddenException('You are not a moderator of this room');
+    if (!isMod)
+      throw new ForbiddenException('You are not a moderator of this room');
   }
 }

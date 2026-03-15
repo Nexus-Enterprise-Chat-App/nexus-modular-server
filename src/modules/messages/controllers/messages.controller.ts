@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   Body,
   Controller,
@@ -11,11 +11,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiNoContentResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { MessagesService } from '../services/messages.service';
-import { RoomsRepository } from '@modules/rooms/repositories/rooms.repository';
-import { CurrentUser, ApiPaginatedResponse } from '@common/decorators';
-import { JwtPayload } from '@modules/iam/interfaces/jwt-payload.interface';
 import {
   AddReactionDto,
   EditMessageDto,
@@ -32,7 +34,14 @@ import {
   PinMessageCommand,
   UnpinMessageCommand,
 } from '../commands';
-import { GetRoomMessagesQuery, GetDmMessagesQuery, GetPinnedMessagesQuery } from '../queries';
+import {
+  GetRoomMessagesQuery,
+  GetDmMessagesQuery,
+  GetPinnedMessagesQuery,
+} from '../queries';
+import { RoomsRepository } from '@src/modules/rooms/repositories/rooms.repository';
+import { ApiPaginatedResponse, CurrentUser } from '@src/common/decorators';
+import { JwtPayload } from '@src/modules/iam/interfaces/jwt-payload.interface';
 
 // ── Room Messages ─────────────────────────────────────────────────────────────
 
@@ -46,7 +55,9 @@ export class RoomMessagesController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List room messages (cursor-paginated, newest first)' })
+  @ApiOperation({
+    summary: 'List room messages (cursor-paginated, newest first)',
+  })
   @ApiPaginatedResponse(MessageDto)
   async list(
     @Param('roomId') roomId: string,
@@ -86,7 +97,9 @@ export class RoomMessagesController {
     @Param('roomId') roomId: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<MessageDto[]> {
-    return this.messagesService.getPinnedMessages(new GetPinnedMessagesQuery(roomId, user.sub));
+    return this.messagesService.getPinnedMessages(
+      new GetPinnedMessagesQuery(roomId, user.sub),
+    );
   }
 
   @Post(':messageId/pin')
@@ -135,7 +148,9 @@ export class MessagesController {
     @Body() dto: EditMessageDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<MessageDto> {
-    return this.messagesService.edit(new EditMessageCommand(messageId, user.sub, dto.content));
+    return this.messagesService.edit(
+      new EditMessageCommand(messageId, user.sub, dto.content),
+    );
   }
 
   @Delete(':messageId')
@@ -146,7 +161,9 @@ export class MessagesController {
     @Param('messageId') messageId: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
-    return this.messagesService.delete(new DeleteMessageCommand(messageId, user.sub, user.role));
+    return this.messagesService.delete(
+      new DeleteMessageCommand(messageId, user.sub, user.role),
+    );
   }
 
   @Post(':messageId/reactions')
@@ -158,7 +175,9 @@ export class MessagesController {
     @Body() dto: AddReactionDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
-    return this.messagesService.addReaction(new AddReactionCommand(messageId, user.sub, dto.emoji));
+    return this.messagesService.addReaction(
+      new AddReactionCommand(messageId, user.sub, dto.emoji),
+    );
   }
 
   @Delete(':messageId/reactions/:emoji')
@@ -185,7 +204,9 @@ export class DmMessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List DM messages (cursor-paginated, newest first)' })
+  @ApiOperation({
+    summary: 'List DM messages (cursor-paginated, newest first)',
+  })
   @ApiPaginatedResponse(MessageDto)
   async list(
     @Param('dmId') dmId: string,

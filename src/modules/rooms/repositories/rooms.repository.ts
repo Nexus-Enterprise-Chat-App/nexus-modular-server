@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@common/services/prisma.service';
-import { CursorPaginationResult, decodeCursor, encodeCursor } from '@common/dto';
-import { Prisma, RoomStatus } from '../../../../generated/prisma';
+import {
+  CursorPaginationResult,
+  decodeCursor,
+  encodeCursor,
+} from '@src/common/dto';
+import { PrismaService } from '@src/common/services/prisma.service';
+import { Prisma, RoomStatus } from 'generated/prisma/client/client';
 
 export const ROOM_SELECT = {
   id: true,
@@ -20,7 +24,9 @@ export const ROOM_SELECT = {
   },
 } satisfies Prisma.RoomSelect;
 
-export type RoomWithModerators = Prisma.RoomGetPayload<{ select: typeof ROOM_SELECT }>;
+export type RoomWithModerators = Prisma.RoomGetPayload<{
+  select: typeof ROOM_SELECT;
+}>;
 
 const MEMBER_SELECT = {
   id: true,
@@ -55,7 +61,10 @@ export class RoomsRepository {
 
     const cursorFilter: Prisma.RoomWhereInput | undefined = cursor
       ? (() => {
-          const { id, createdAt } = decodeCursor<{ id: string; createdAt: string }>(cursor);
+          const { id, createdAt } = decodeCursor<{
+            id: string;
+            createdAt: string;
+          }>(cursor);
           return {
             OR: [
               { createdAt: { lt: new Date(createdAt) } },
@@ -98,7 +107,11 @@ export class RoomsRepository {
     roomId: string,
     limit: number,
     cursor?: string,
-  ): Promise<CursorPaginationResult<Prisma.UserGetPayload<{ select: typeof MEMBER_SELECT }>>> {
+  ): Promise<
+    CursorPaginationResult<
+      Prisma.UserGetPayload<{ select: typeof MEMBER_SELECT }>
+    >
+  > {
     // "Members" of a public room = all users who have sent a message or are moderators.
     // For Phase 2 (pre-messages), we return moderators + recent active users from device sessions.
     // This will be updated in Phase 3 when the messages table exists.
@@ -126,7 +139,9 @@ export class RoomsRepository {
     if (hasMore) items.pop();
 
     const nextCursor =
-      hasMore && items.length > 0 ? encodeCursor({ id: items[items.length - 1].id }) : null;
+      hasMore && items.length > 0
+        ? encodeCursor({ id: items[items.length - 1].id })
+        : null;
 
     return { items, nextCursor, hasMore };
   }

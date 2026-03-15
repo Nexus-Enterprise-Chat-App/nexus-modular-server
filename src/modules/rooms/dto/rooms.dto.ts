@@ -1,12 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
-import { CursorPaginationDto } from '@common/dto';
-import { RoomStatus } from '../../../../generated/prisma';
+import { CursorPaginationDto } from '@src/common/dto';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { RoomStatus } from 'generated/prisma/client/enums';
 
 // ── List / Search ─────────────────────────────────────────────────────────────
 
 export class ListRoomsDto extends CursorPaginationDto {
-  @ApiPropertyOptional({ example: 'tech', description: 'Search by name (trigram)' })
+  @ApiPropertyOptional({
+    example: 'tech',
+    description: 'Search by name (trigram)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -17,7 +29,11 @@ export class ListRoomsDto extends CursorPaginationDto {
   @IsString()
   category?: string;
 
-  @ApiPropertyOptional({ isArray: true, type: String, example: ['dev', 'opensource'] })
+  @ApiPropertyOptional({
+    isArray: true,
+    type: String,
+    example: ['dev', 'opensource'],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -56,7 +72,9 @@ export class RoomDto {
   @ApiPropertyOptional()
   slowModeSeconds!: number | null;
 
-  @ApiProperty({ description: 'Number of members currently online (from Redis)' })
+  @ApiProperty({
+    description: 'Number of members currently online (from Redis)',
+  })
   onlineCount!: number;
 
   @ApiProperty()
@@ -79,7 +97,9 @@ export class RoomMemberDto {
   @ApiProperty()
   isOnline!: boolean;
 
-  @ApiProperty({ description: 'Whether this member is a moderator of this room' })
+  @ApiProperty({
+    description: 'Whether this member is a moderator of this room',
+  })
   isModerator!: boolean;
 }
 

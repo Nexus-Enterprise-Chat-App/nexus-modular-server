@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { Request, Response } from 'express';
-import { Prisma } from '../../../generated/prisma';
+import { Prisma } from 'generated/prisma/client/client';
 
 // ── GlobalHttpExceptionFilter ────────────────────────────────────────────────
 @Catch()
@@ -78,7 +78,10 @@ export class WsExceptionFilter implements ExceptionFilter {
 // ── PrismaExceptionFilter ────────────────────────────────────────────────────
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaExceptionFilter implements ExceptionFilter {
-  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost): void {
+  catch(
+    exception: Prisma.PrismaClientKnownRequestError,
+    host: ArgumentsHost,
+  ): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
@@ -121,7 +124,9 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 
 // ── ValidationExceptionFilter ────────────────────────────────────────────────
 // Formats class-validator errors into a field-level error map
-export function formatValidationErrors(errors: any[]): Record<string, string[]> {
+export function formatValidationErrors(
+  errors: any[],
+): Record<string, string[]> {
   return errors.reduce(
     (acc, err) => {
       acc[err.property] = Object.values(err.constraints || {});

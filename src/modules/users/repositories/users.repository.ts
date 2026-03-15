@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'common/services/prisma.service';
-import { CursorPaginationResult, decodeCursor, encodeCursor } from 'common/dto';
-import { Prisma } from '../../../../generated/prisma';
+import {
+  CursorPaginationResult,
+  decodeCursor,
+  encodeCursor,
+} from '@src/common/dto';
+import { PrismaService } from '@src/common/services/prisma.service';
+import { Prisma } from 'generated/prisma/client/client';
 
 // The subset of User fields safe to return in API responses
 export const PUBLIC_USER_SELECT = {
@@ -15,7 +19,9 @@ export const PUBLIC_USER_SELECT = {
   lastSeenAt: true,
 } satisfies Prisma.UserSelect;
 
-export type PublicUser = Prisma.UserGetPayload<{ select: typeof PUBLIC_USER_SELECT }>;
+export type PublicUser = Prisma.UserGetPayload<{
+  select: typeof PUBLIC_USER_SELECT;
+}>;
 
 @Injectable()
 export class UsersRepository {
@@ -37,9 +43,10 @@ export class UsersRepository {
 
   async findByIdOrHandle(idOrHandle: string): Promise<PublicUser | null> {
     // UUID format check (simple heuristic)
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      idOrHandle,
-    );
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        idOrHandle,
+      );
     return isUuid ? this.findById(idOrHandle) : this.findByHandle(idOrHandle);
   }
 
@@ -75,7 +82,10 @@ export class UsersRepository {
 
     const cursorClause: Prisma.UserWhereInput | undefined = cursor
       ? (() => {
-          const { id, createdAt } = decodeCursor<{ id: string; createdAt: string }>(cursor);
+          const { id, createdAt } = decodeCursor<{
+            id: string;
+            createdAt: string;
+          }>(cursor);
           return {
             OR: [
               { createdAt: { lt: new Date(createdAt) } },

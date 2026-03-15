@@ -9,8 +9,6 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bullmq';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { PrismaService } from 'common/services/prisma.service';
-import { AppConfigService } from 'config/app.config';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { DeviceSessionService } from './device-session.service';
 import {
@@ -25,7 +23,9 @@ import {
   AuthUserDto,
   DeviceSessionDto,
 } from '../dto/auth.dto';
-import { User } from '../../../../generated/prisma';
+import { AppConfigService } from '@src/config/app.config';
+import { PrismaService } from '@src/common/services/prisma.service';
+import { User } from 'generated/prisma/client/client';
 
 export const EMAIL_QUEUE = 'email';
 
@@ -41,10 +41,17 @@ export class AuthService {
   ) {}
 
   // ── Register ──────────────────────────────────────────────────────────────
-  async register(dto: RegisterDto, ipAddress?: string): Promise<AuthResponseDto> {
+  async register(
+    dto: RegisterDto,
+    ipAddress?: string,
+  ): Promise<AuthResponseDto> {
     const [emailExists, handleExists] = await Promise.all([
-      this.prisma.user.findUnique({ where: { email: dto.email.toLowerCase() } }),
-      this.prisma.user.findUnique({ where: { handle: dto.handle.toLowerCase() } }),
+      this.prisma.user.findUnique({
+        where: { email: dto.email.toLowerCase() },
+      }),
+      this.prisma.user.findUnique({
+        where: { handle: dto.handle.toLowerCase() },
+      }),
     ]);
 
     if (emailExists) throw new ConflictException('Email already in use');
@@ -62,11 +69,18 @@ export class AuthService {
     });
 
     // Queue welcome email
-    await this.emailQueue.add('welcome', { userId: user.id, email: user.email, name: user.name });
+    await this.emailQueue.add('welcome', {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+    });
 
     // Use a default web device for register (client provides proper deviceInfo on login)
     const deviceId = uuidv4();
-    const { accessToken, refreshToken } = await this.generateTokenPair(user, deviceId);
+    const { accessToken, refreshToken } = await this.generateTokenPair(
+      user,
+      deviceId,
+    );
 
     await this.sessions.upsert({
       userId: user.id,
@@ -90,11 +104,17 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Account is suspended. Please contact support.');
+      throw new UnauthorizedException(
+        'Account is suspended. Please contact support.',
+      );
     }
 
-    const { deviceId, platform, pushToken, deviceName, deviceModel } = dto.deviceInfo;
-    const { accessToken, refreshToken } = await this.generateTokenPair(user, deviceId);
+    const { deviceId, platform, pushToken, deviceName, deviceModel } =
+      dto.deviceInfo;
+    const { accessToken, refreshToken } = await this.generateTokenPair(
+      user,
+      deviceId,
+    );
 
     await this.sessions.upsert({
       userId: user.id,
@@ -117,7 +137,9 @@ export class AuthService {
   }
 
   // ── Refresh ───────────────────────────────────────────────────────────────
-  async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refresh(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     let payload: RefreshTokenPayload;
     try {
       payload = this.jwtService.verify<RefreshTokenPayload>(refreshToken, {
@@ -132,10 +154,14 @@ export class AuthService {
       payload.deviceId,
       refreshToken,
     );
-    if (!valid) throw new UnauthorizedException('Refresh token revoked or invalid');
+    if (!valid)
+      throw new UnauthorizedException('Refresh token revoked or invalid');
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user || !user.isActive) throw new UnauthorizedException('User not found or suspended');
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+    if (!user || !user.isActive)
+      throw new UnauthorizedException('User not found or suspended');
 
     // Rotate: issue new pair, invalidate old
     const newPair = await this.generateTokenPair(user, payload.deviceId);
@@ -157,7 +183,10 @@ export class AuthService {
     accessTokenJti: string,
     accessTokenExp: number,
   ): Promise<void> {
-    const remainingTtl = Math.max(0, accessTokenExp - Math.floor(Date.now() / 1000));
+    const remainingTtl = Math.max(
+      0,
+      accessTokenExp - Math.floor(Date.now() / 1000),
+    );
     await Promise.all([
       this.blacklist.blacklist(accessTokenJti, remainingTtl),
       this.sessions.clearRefreshToken(userId, deviceId),
@@ -166,14 +195,19 @@ export class AuthService {
 
   // ── Forgot Password ───────────────────────────────────────────────────────
   async forgotPassword(email: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
     // Always return success to prevent email enumeration
     if (!user) return;
 
     const jti = uuidv4();
     const resetToken = this.jwtService.sign(
       { sub: user.id, email: user.email, jti } satisfies ResetTokenPayload,
-      { secret: this.config.jwt.resetSecret, expiresIn: this.config.jwt.resetExpiry },
+      {
+        secret: this.config.jwt.resetSecret,
+        expiresIn: this.config.jwt.resetExpiry,
+      },
     );
 
     await this.emailQueue.add('password-reset', {
@@ -217,8 +251,13 @@ export class AuthService {
   }
 
   // ── Credential Validation (used by LocalStrategy) ─────────────────────────
-  async validateCredentials(email: string, password: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  async validateCredentials(
+    email: string,
+    password: string,
+  ): Promise<User | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
     if (!user) return null;
     const valid = await bcrypt.compare(password, user.passwordHash);
     return valid ? user : null;

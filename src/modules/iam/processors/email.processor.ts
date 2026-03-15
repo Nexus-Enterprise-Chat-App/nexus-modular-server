@@ -2,8 +2,8 @@ import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import * as nodemailer from 'nodemailer';
-import { AppConfigService } from '@config/app.config';
 import { EMAIL_QUEUE } from '../services/auth.service';
+import { AppConfigService } from '@src/config/app.config';
 
 interface WelcomeJobData {
   userId: string;

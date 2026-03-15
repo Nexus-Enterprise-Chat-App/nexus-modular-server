@@ -1,7 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
-import { CursorPaginationDto } from '@common/dto';
-import { MessageStatus, MessageType } from '../../../../generated/prisma';
+import { CursorPaginationDto } from '@src/common/dto';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
+import { MessageStatus, MessageType } from 'generated/prisma/client/client';
 
 // ── Send Message ──────────────────────────────────────────────────────────────
 
@@ -16,7 +22,9 @@ export class SendMessageDto {
   @MaxLength(4000)
   content?: string;
 
-  @ApiPropertyOptional({ description: 'Media URL — set by MediaModule after upload' })
+  @ApiPropertyOptional({
+    description: 'Media URL — set by MediaModule after upload',
+  })
   @IsOptional()
   @IsString()
   mediaUrl?: string;

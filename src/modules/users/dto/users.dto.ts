@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { CursorPaginationDto } from '@src/common/dto';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { CursorPaginationDto } from '@common/dto';
-import { UserRole } from '../../../../generated/prisma';
+import { UserRole } from 'generated/prisma/client/enums';
 
 // ── Update Profile ────────────────────────────────────────────────────────────
 
@@ -51,7 +51,10 @@ export class UserProfileDto {
   @ApiProperty({ example: false })
   isOnline!: boolean;
 
-  @ApiProperty({ example: false, description: 'Whether you have blocked this user' })
+  @ApiProperty({
+    example: false,
+    description: 'Whether you have blocked this user',
+  })
   isBlockedByMe!: boolean;
 }
 
@@ -73,7 +76,10 @@ export class PublicUserDto {
 }
 
 export class SearchUsersDto extends CursorPaginationDto {
-  @ApiPropertyOptional({ example: 'jane', description: 'Search by name or handle (trigram)' })
+  @ApiPropertyOptional({
+    example: 'jane',
+    description: 'Search by name or handle (trigram)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
